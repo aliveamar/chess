@@ -1,4 +1,4 @@
-# ♟ Chess Engine — Powered by Stockfish
+# Chess Engine — Powered by Stockfish
 
 A beautiful web-based chess app powered by **Stockfish** (~3500 ELO), built with **Python/Flask** and a premium dark-themed UI.
 
@@ -8,16 +8,16 @@ A beautiful web-based chess app powered by **Stockfish** (~3500 ELO), built with
 
 ## Features
 
-- 🎮 **Play against Stockfish** — the world's strongest chess engine
-- 🎚️ **5 difficulty levels** — Beginner (~800 ELO) to Grandmaster (~3500 ELO)
-- 🖱️ **Drag & drop** or click-to-move pieces
-- 📊 **Live evaluation bar** — see who's winning in real-time
-- 📜 **Move history** panel
-- ♟ **Captured pieces** display
-- ⬛⬜ **Play as White or Black**
-- 🔄 **Flip board**, **undo moves**, **analyze position**
-- 🌙 **Premium dark theme** with glassmorphism design
-- 📱 **Responsive** — works on desktop and tablet
+- **Play against Stockfish** — the world's strongest chess engine
+- **5 difficulty levels** — Beginner (~800 ELO) to Grandmaster (~3500 ELO)
+- **Drag & drop** or click-to-move pieces
+- **Live evaluation bar** — see who's winning in real-time
+- **Move history** panel
+- **Captured pieces** display
+- **Play as White or Black**
+- **Flip board**, **undo moves**, **analyze position**
+- **Premium dark theme** with glassmorphism design
+- **Responsive** — works on desktop and tablet
 
 ## Quick Start
 
@@ -41,7 +41,7 @@ This automatically downloads Stockfish 17 for Windows and places it in the `stoc
 python app.py
 ```
 
-### 4. Play!
+### 4. Play
 
 Open **http://localhost:5000** in your browser.
 
