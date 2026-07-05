@@ -2,6 +2,8 @@
 
 A beautiful web-based chess app powered by **Stockfish** (~3500 ELO), built with **Python/Flask** and a premium dark-themed UI.
 
+### [Play Now — Click Here](https://aliveamar.github.io/chess/)
+
 ![Python](https://img.shields.io/badge/Python-3.8+-blue?logo=python)
 ![Flask](https://img.shields.io/badge/Flask-Backend-green?logo=flask)
 ![Stockfish](https://img.shields.io/badge/Stockfish-18-orange)
