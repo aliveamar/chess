@@ -3,15 +3,26 @@
    Uses chess.js for rules + Stockfish.js WASM Web Worker
    ══════════════════════════════════════════ */
 
-// ── Piece Unicode ──
-const PIECE_UNICODE = {
-    wK: '\u2654', wQ: '\u2655', wR: '\u2656', wB: '\u2657', wN: '\u2658', wP: '\u2659',
-    bK: '\u265A', bQ: '\u265B', bR: '\u265C', bB: '\u265D', bN: '\u265E', bP: '\u265F',
+// ── Piece Images (Wikimedia Commons SVGs) ──
+const PIECE_IMAGES = {
+    wK: 'https://upload.wikimedia.org/wikipedia/commons/4/42/Chess_klt45.svg',
+    wQ: 'https://upload.wikimedia.org/wikipedia/commons/1/15/Chess_qlt45.svg',
+    wR: 'https://upload.wikimedia.org/wikipedia/commons/7/72/Chess_rlt45.svg',
+    wB: 'https://upload.wikimedia.org/wikipedia/commons/b/b1/Chess_blt45.svg',
+    wN: 'https://upload.wikimedia.org/wikipedia/commons/7/70/Chess_nlt45.svg',
+    wP: 'https://upload.wikimedia.org/wikipedia/commons/4/45/Chess_plt45.svg',
+    bK: 'https://upload.wikimedia.org/wikipedia/commons/f/f0/Chess_kdt45.svg',
+    bQ: 'https://upload.wikimedia.org/wikipedia/commons/4/47/Chess_qdt45.svg',
+    bR: 'https://upload.wikimedia.org/wikipedia/commons/f/ff/Chess_rdt45.svg',
+    bB: 'https://upload.wikimedia.org/wikipedia/commons/9/98/Chess_bdt45.svg',
+    bN: 'https://upload.wikimedia.org/wikipedia/commons/e/ef/Chess_ndt45.svg',
+    bP: 'https://upload.wikimedia.org/wikipedia/commons/c/c7/Chess_pdt45.svg',
 };
 
-const CAPTURED_UNICODE = {
-    p: '\u265F', n: '\u265E', b: '\u265D', r: '\u265C', q: '\u265B',
-    P: '\u2659', N: '\u2658', B: '\u2657', R: '\u2656', Q: '\u2655',
+// Unicode for captured pieces display (small, doesn't need images)
+const CAPTURED_SYMBOLS = {
+    wP: '\u2659', wN: '\u2658', wB: '\u2657', wR: '\u2656', wQ: '\u2655',
+    bP: '\u265F', bN: '\u265E', bB: '\u265D', bR: '\u265C', bQ: '\u265B',
 };
 
 // ── Difficulty: depth settings ──
@@ -30,18 +41,16 @@ let legalMoves = [];
 let lastMove = null;
 let isFlipped = false;
 let isThinking = false;
-let playerColor = 'w'; // 'w' or 'b'
-let capturedPieces = { w: [], b: [] }; // pieces captured BY each side
-let moveHistory = []; // SAN moves
+let playerColor = 'w';
+let capturedPieces = { w: [], b: [] };
+let moveHistory = [];
 
 // ── Stockfish Web Worker ──
 let stockfish = null;
 let engineReady = false;
-let pendingEvalCallback = null;
 
 function initStockfish() {
     try {
-        // Load Stockfish via blob URL to avoid cross-origin Worker issues
         const stockfishUrl = 'https://cdnjs.cloudflare.com/ajax/libs/stockfish.js/10.0.2/stockfish.js';
         const blob = new Blob(
             [`importScripts('${stockfishUrl}');`],
@@ -52,13 +61,10 @@ function initStockfish() {
 
         stockfish.onmessage = function (e) {
             const msg = e.data;
-
             if (msg === 'uciok') {
                 engineReady = true;
                 console.log('[Stockfish] Engine ready.');
             }
-
-            // Parse best move
             if (typeof msg === 'string' && msg.startsWith('bestmove')) {
                 const parts = msg.split(' ');
                 const bestMove = parts[1];
@@ -66,8 +72,6 @@ function initStockfish() {
                     onEngineBestMove(bestMove);
                 }
             }
-
-            // Parse evaluation from "info" lines
             if (typeof msg === 'string' && msg.includes(' score ')) {
                 parseEvaluation(msg);
             }
@@ -84,18 +88,15 @@ function initStockfish() {
 }
 
 function parseEvaluation(infoLine) {
-    // Extract "score cp X" or "score mate X"
     const cpMatch = infoLine.match(/score cp (-?\d+)/);
     const mateMatch = infoLine.match(/score mate (-?\d+)/);
 
     if (mateMatch) {
         const mate = parseInt(mateMatch[1]);
-        // Flip sign if engine is playing black
         const displayMate = game.turn() === 'w' ? mate : -mate;
         updateEvalDisplay({ type: 'mate', value: displayMate });
     } else if (cpMatch) {
         let cp = parseInt(cpMatch[1]);
-        // Stockfish reports from the side to move; normalize to white's perspective
         if (game.turn() === 'b') cp = -cp;
         updateEvalDisplay({ type: 'cp', value: cp });
     }
@@ -108,20 +109,15 @@ function requestEngineMove() {
         showLoading(false);
         return;
     }
-
     const diff = DIFFICULTY[parseInt(difficultySelect.value)] || DIFFICULTY[3];
-    const fen = game.fen();
-
-    stockfish.postMessage('position fen ' + fen);
+    stockfish.postMessage('position fen ' + game.fen());
     stockfish.postMessage('go depth ' + diff.depth);
 }
 
 function onEngineBestMove(moveUci) {
-    // Convert UCI move (e.g. "e2e4" or "e7e8q") to chess.js format
     const from = moveUci.substring(0, 2);
     const to = moveUci.substring(2, 4);
     const promotion = moveUci.length > 4 ? moveUci[4] : undefined;
-
     const moveObj = game.move({ from, to, promotion });
 
     if (moveObj) {
@@ -160,12 +156,21 @@ let dragFrom = null;
 let ghostEl = null;
 
 // ══════════════════════════════════════
-// Board Rendering
+// Helpers
 // ══════════════════════════════════════
 
 function getSquareName(row, col) {
     return String.fromCharCode(97 + col) + (8 - row);
 }
+
+function getPieceImageKey(piece) {
+    if (!piece) return null;
+    return (piece.color === 'w' ? 'w' : 'b') + piece.type.toUpperCase();
+}
+
+// ══════════════════════════════════════
+// Board Rendering
+// ══════════════════════════════════════
 
 function renderLabels() {
     rankLabels.innerHTML = '';
@@ -187,16 +192,9 @@ function renderLabels() {
     });
 }
 
-function getPieceUnicode(piece) {
-    if (!piece) return '';
-    const key = (piece.color === 'w' ? 'w' : 'b') + piece.type.toUpperCase();
-    return PIECE_UNICODE[key] || '';
-}
-
 function renderBoard() {
     boardEl.innerHTML = '';
-
-    const board = game.board(); // 8x8 array
+    const board = game.board();
 
     // Find king square if in check
     let checkSquare = null;
@@ -223,30 +221,35 @@ function renderBoard() {
             squareEl.className = 'square ' + (isLight ? 'light' : 'dark');
             squareEl.dataset.square = squareName;
 
-            // Highlights
             if (selectedSquare === squareName) squareEl.classList.add('selected');
             if (lastMove && (lastMove.from === squareName || lastMove.to === squareName)) {
                 squareEl.classList.add('last-move');
             }
             if (checkSquare === squareName) squareEl.classList.add('in-check');
 
-            // Piece
+            // Piece (as image)
             const piece = board[row][col];
             if (piece) {
-                const pieceEl = document.createElement('span');
-                pieceEl.className = 'piece';
-                pieceEl.textContent = getPieceUnicode(piece);
-                pieceEl.dataset.square = squareName;
-                pieceEl.dataset.color = piece.color;
+                const key = getPieceImageKey(piece);
+                const imgUrl = PIECE_IMAGES[key];
+                if (imgUrl) {
+                    const imgEl = document.createElement('img');
+                    imgEl.className = 'piece';
+                    imgEl.src = imgUrl;
+                    imgEl.alt = key;
+                    imgEl.draggable = false;
+                    imgEl.dataset.square = squareName;
+                    imgEl.dataset.color = piece.color;
 
-                pieceEl.addEventListener('mousedown', onPieceMouseDown);
-                pieceEl.addEventListener('touchstart', onPieceTouchStart, { passive: false });
+                    imgEl.addEventListener('mousedown', onPieceMouseDown);
+                    imgEl.addEventListener('touchstart', onPieceTouchStart, { passive: false });
 
-                if (dragFrom === squareName) pieceEl.classList.add('dragging');
-                squareEl.appendChild(pieceEl);
+                    if (dragFrom === squareName) imgEl.classList.add('dragging');
+                    squareEl.appendChild(imgEl);
+                }
             }
 
-            // Legal move indicators
+            // Legal move dots
             if (selectedSquare) {
                 const isTarget = legalMoves.some(m => m.to === squareName);
                 if (isTarget) {
@@ -272,7 +275,6 @@ function onSquareClick(squareName) {
 
     const piece = game.get(squareName);
 
-    // If selected and clicking a legal target, make the move
     if (selectedSquare && selectedSquare !== squareName) {
         const isLegal = legalMoves.some(m => m.to === squareName);
         if (isLegal) {
@@ -292,7 +294,6 @@ function onSquareClick(squareName) {
         }
     }
 
-    // Select own piece
     if (piece && piece.color === playerColor) {
         selectSquare(squareName);
     } else {
@@ -302,7 +303,6 @@ function onSquareClick(squareName) {
 
 function selectSquare(squareName) {
     selectedSquare = squareName;
-    // Get legal moves from this square
     legalMoves = game.moves({ square: squareName, verbose: true });
     renderBoard();
 }
@@ -322,21 +322,16 @@ function executePlayerMove(from, to, promotion) {
     updateCapturedPieces(moveObj);
     updateUI();
 
-    // Engine responds if game isn't over
     if (!game.game_over()) {
         isThinking = true;
         showLoading(true);
-        // Small delay so UI updates before engine starts
         setTimeout(() => requestEngineMove(), 50);
     }
 }
 
 function updateCapturedPieces(moveObj) {
     if (moveObj.captured) {
-        // moveObj.color is the color that moved (and captured)
-        const capturedBy = moveObj.color; // 'w' or 'b'
-        const capturedPieceSymbol = moveObj.captured; // 'p', 'n', etc.
-        capturedPieces[capturedBy].push(capturedPieceSymbol);
+        capturedPieces[moveObj.color].push(moveObj.captured);
     }
 }
 
@@ -388,9 +383,10 @@ function startDrag(pieceEl, square, x, y) {
     selectedSquare = square;
     legalMoves = game.moves({ square, verbose: true });
 
-    ghostEl = document.createElement('span');
+    ghostEl = document.createElement('img');
     ghostEl.className = 'piece-ghost';
-    ghostEl.textContent = pieceEl.textContent;
+    ghostEl.src = pieceEl.src;
+    ghostEl.draggable = false;
     document.body.appendChild(ghostEl);
     moveDrag(x, y);
     renderBoard();
@@ -447,17 +443,22 @@ function showPromotionModal(from, to) {
     promotionChoices.innerHTML = '';
 
     const color = game.turn();
-    const pieces = color === 'w'
-        ? [['q', '\u2655'], ['r', '\u2656'], ['b', '\u2657'], ['n', '\u2658']]
-        : [['q', '\u265B'], ['r', '\u265C'], ['b', '\u265D'], ['n', '\u265E']];
+    const pieces = ['q', 'r', 'b', 'n'];
 
-    pieces.forEach(([code, symbol]) => {
+    pieces.forEach(p => {
+        const key = (color === 'w' ? 'w' : 'b') + p.toUpperCase();
         const btn = document.createElement('div');
         btn.className = 'promotion-choice';
-        btn.textContent = symbol;
+        const img = document.createElement('img');
+        img.src = PIECE_IMAGES[key];
+        img.alt = key;
+        img.style.width = '100%';
+        img.style.height = '100%';
+        img.draggable = false;
+        btn.appendChild(img);
         btn.addEventListener('click', () => {
             promotionModal.classList.remove('active');
-            executePlayerMove(from, to, code);
+            executePlayerMove(from, to, p);
         });
         promotionChoices.appendChild(btn);
     });
@@ -505,19 +506,21 @@ function updateCapturedDisplay() {
     capturedByWhite.innerHTML = '';
     capturedByBlack.innerHTML = '';
 
-    // White captured these (black pieces)
+    // White captured these black pieces
     capturedPieces.w.forEach(p => {
+        const key = 'b' + p.toUpperCase();
         const span = document.createElement('span');
         span.className = 'captured-piece';
-        span.textContent = CAPTURED_UNICODE[p] || p;
+        span.textContent = CAPTURED_SYMBOLS[key] || p;
         capturedByWhite.appendChild(span);
     });
 
-    // Black captured these (white pieces)
+    // Black captured these white pieces
     capturedPieces.b.forEach(p => {
+        const key = 'w' + p.toUpperCase();
         const span = document.createElement('span');
         span.className = 'captured-piece';
-        span.textContent = CAPTURED_UNICODE[p.toUpperCase()] || p;
+        span.textContent = CAPTURED_SYMBOLS[key] || p;
         capturedByBlack.appendChild(span);
     });
 }
@@ -609,7 +612,6 @@ function newGame() {
     gameStatus.textContent = '';
     updateEvalDisplay({ type: 'cp', value: 0 });
 
-    // Flip board for black
     if (playerColor === 'b' && !isFlipped) {
         isFlipped = true;
         renderLabels();
@@ -620,7 +622,6 @@ function newGame() {
 
     updateUI();
 
-    // If playing black, engine goes first
     if (playerColor === 'b') {
         isThinking = true;
         showLoading(true);
@@ -631,16 +632,13 @@ function newGame() {
 function undoMove() {
     if (isThinking || moveHistory.length === 0) return;
 
-    // Undo two moves (player + engine) or one if only one exists
     const undoCount = moveHistory.length >= 2 ? 2 : 1;
     for (let i = 0; i < undoCount; i++) {
         game.undo();
         moveHistory.pop();
     }
 
-    // Recalculate captured pieces from scratch
     recalculateCaptured();
-
     lastMove = null;
     updateEvalDisplay({ type: 'cp', value: 0 });
     updateUI();

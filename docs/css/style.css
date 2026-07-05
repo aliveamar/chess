@@ -404,32 +404,15 @@ body {
 
 /* ── Pieces ── */
 .piece {
-    font-size: calc(var(--square-size) * 0.72);
-    line-height: 1;
+    width: 85%;
+    height: 85%;
     z-index: 3;
     cursor: grab;
     transition: transform 0.1s ease;
     user-select: none;
     -webkit-user-select: none;
-}
-
-.piece[data-color="w"] {
-    color: #ffffff;
-    text-shadow:
-        -1px -1px 0 #333,
-         1px -1px 0 #333,
-        -1px  1px 0 #333,
-         1px  1px 0 #333,
-         0    0   4px rgba(0, 0, 0, 0.4);
-}
-
-.piece[data-color="b"] {
-    color: #1a1a2e;
-    text-shadow:
-        -1px -1px 0 rgba(255, 255, 255, 0.4),
-         1px -1px 0 rgba(255, 255, 255, 0.4),
-        -1px  1px 0 rgba(255, 255, 255, 0.4),
-         1px  1px 0 rgba(255, 255, 255, 0.4);
+    pointer-events: auto;
+    filter: drop-shadow(1px 2px 3px rgba(0, 0, 0, 0.35));
 }
 
 .piece:active {
@@ -445,8 +428,8 @@ body {
     position: fixed;
     pointer-events: none;
     z-index: 1000;
-    font-size: calc(var(--square-size) * 0.8);
-    line-height: 1;
+    width: calc(var(--square-size) * 0.85);
+    height: calc(var(--square-size) * 0.85);
     filter: drop-shadow(2px 4px 6px rgba(0, 0, 0, 0.5));
     transition: none;
 }
