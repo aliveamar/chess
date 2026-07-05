@@ -30,34 +30,36 @@
                 <button class="auth-tab" data-tab="guest" id="tabGuest">Play as Guest</button>
             </div>
 
-            <!-- Login / Register Form -->
-            <form class="auth-form" id="formLogin" autocomplete="off">
+            <!-- Login / Register -->
+            <div class="auth-form" id="formLogin">
                 <div class="auth-field">
                     <label for="loginUsername">Username</label>
-                    <input type="text" id="loginUsername" placeholder="Enter your username" required minlength="3" maxlength="20" autocomplete="off">
+                    <input type="text" id="loginUsername" placeholder="Enter your username" maxlength="20" autocomplete="off">
                 </div>
                 <div class="auth-field">
                     <label for="loginPassword">Password</label>
-                    <input type="password" id="loginPassword" placeholder="Enter your password" required minlength="4" maxlength="30" autocomplete="off">
+                    <input type="password" id="loginPassword" placeholder="Enter your password" maxlength="30" autocomplete="off">
                 </div>
                 <div class="auth-error" id="loginError"></div>
                 <div class="auth-buttons">
-                    <button type="submit" class="btn btn-primary auth-btn" id="btnLogin">Login</button>
-                    <button type="button" class="btn btn-secondary auth-btn" id="btnRegister">Register</button>
+                    <button class="btn btn-primary auth-btn" id="btnLogin">Login</button>
+                    <button class="btn btn-secondary auth-btn" id="btnRegister">Register</button>
                 </div>
                 <p class="auth-hint">Login with existing account or Register a new one.</p>
-            </form>
+            </div>
 
-            <!-- Guest Form -->
-            <form class="auth-form hidden" id="formGuest" autocomplete="off">
+            <!-- Guest -->
+            <div class="auth-form hidden" id="formGuest">
                 <div class="auth-field">
                     <label for="guestUsername">Username</label>
-                    <input type="text" id="guestUsername" placeholder="Choose a display name" required minlength="3" maxlength="20" autocomplete="off">
+                    <input type="text" id="guestUsername" placeholder="Choose a unique display name" maxlength="20" autocomplete="off">
                 </div>
                 <div class="auth-error" id="guestError"></div>
-                <button type="submit" class="btn btn-primary auth-btn" style="width:100%">Play as Guest</button>
-                <p class="auth-hint">Guest stats are saved in this browser only. No password needed.</p>
-            </form>
+                <button class="btn btn-primary auth-btn" id="btnGuestPlay" style="width:100%">Play as Guest</button>
+                <p class="auth-hint">Username must be unique. No password needed. Stats saved in this browser.</p>
+            </div>
+
+            <p class="auth-storage-note">Usernames are unique across all devices. Stats are saved in this browser.</p>
         </div>
     </div>
 

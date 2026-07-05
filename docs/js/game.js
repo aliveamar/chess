@@ -36,11 +36,38 @@ const DIFFICULTY = {
 };
 
 // ══════════════════════════════════════
-// AUTH SYSTEM (LocalStorage)
+// AUTH SYSTEM (Server + LocalStorage stats)
+// Usernames are validated globally via Flask API.
+// Stats stay in this browser's LocalStorage.
 // ══════════════════════════════════════
 
 const STORAGE_USERS_KEY = 'chess_users';
 const STORAGE_CURRENT_KEY = 'chess_current_user';
+
+// When opened as a static file or from another port, talk to the local Flask server.
+const API_BASE = (location.protocol === 'file:' || location.port !== '5000')
+    ? 'http://localhost:5000'
+    : '';
+
+async function authRequest(path, body) {
+    try {
+        const res = await fetch(API_BASE + path, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(body),
+        });
+        const data = await res.json();
+        if (!data.ok) {
+            return { ok: false, error: data.error || 'Request failed.' };
+        }
+        return data;
+    } catch {
+        return {
+            ok: false,
+            error: 'Cannot reach the server. Run python app.py, then open http://localhost:5000/play/',
+        };
+    }
+}
 
 function getUsers() {
     try { return JSON.parse(localStorage.getItem(STORAGE_USERS_KEY)) || {}; }
@@ -71,60 +98,44 @@ function createDefaultStats() {
     return { gamesPlayed: 0, wins: 0, losses: 0, draws: 0, totalTimeSecs: 0, bestWinElo: 0, history: [] };
 }
 
-function registerUser(username, password) {
+function ensureLocalUser(username, type) {
     const users = getUsers();
-    const nameLower = username.toLowerCase();
-
-    // Check uniqueness (case-insensitive)
-    for (const key of Object.keys(users)) {
-        if (key.toLowerCase() === nameLower) {
-            return { ok: false, error: 'Username already taken.' };
-        }
+    if (!users[username]) {
+        users[username] = { type, password: null, stats: createDefaultStats() };
+        saveUsers(users);
     }
+}
 
-    users[username] = { type: 'registered', password: password, stats: createDefaultStats() };
+async function registerUser(username, password) {
+    const res = await authRequest('/api/auth/register', { username, password });
+    if (!res.ok) return res;
+
+    ensureLocalUser(username, 'registered');
+    const users = getUsers();
+    users[username].type = 'registered';
+    users[username].password = password;
     saveUsers(users);
     setCurrentUser(username);
     return { ok: true };
 }
 
-function loginUser(username, password) {
-    const users = getUsers();
+async function loginUser(username, password) {
+    const res = await authRequest('/api/auth/login', { username, password });
+    if (!res.ok) return res;
 
-    // Find user (case-insensitive match)
-    let foundKey = null;
-    for (const key of Object.keys(users)) {
-        if (key.toLowerCase() === username.toLowerCase()) { foundKey = key; break; }
-    }
-
-    if (!foundKey) return { ok: false, error: 'User not found. Click Register to create an account.' };
-    const user = users[foundKey];
-    if (user.type === 'guest') return { ok: false, error: 'This is a guest account. Use the Guest tab.' };
-    if (user.password !== password) return { ok: false, error: 'Wrong password.' };
-
-    setCurrentUser(foundKey);
+    const canonical = res.username || username;
+    ensureLocalUser(canonical, 'registered');
+    setCurrentUser(canonical);
     return { ok: true };
 }
 
-function guestLogin(username) {
-    const users = getUsers();
-    const nameLower = username.toLowerCase();
+async function guestLogin(username) {
+    const res = await authRequest('/api/auth/guest', { username });
+    if (!res.ok) return res;
 
-    for (const key of Object.keys(users)) {
-        if (key.toLowerCase() === nameLower) {
-            if (users[key].type === 'registered') {
-                return { ok: false, error: 'This username is taken by a registered user.' };
-            }
-            // Existing guest — log them in
-            setCurrentUser(key);
-            return { ok: true };
-        }
-    }
-
-    // New guest
-    users[username] = { type: 'guest', password: null, stats: createDefaultStats() };
-    saveUsers(users);
-    setCurrentUser(username);
+    const canonical = res.username || username;
+    ensureLocalUser(canonical, 'guest');
+    setCurrentUser(canonical);
     return { ok: true };
 }
 
@@ -305,30 +316,45 @@ tabGuest.addEventListener('click', () => {
     guestError.textContent = '';
 });
 
-formLogin.addEventListener('submit', (e) => {
-    e.preventDefault();
+// Login button
+document.getElementById('btnLogin').addEventListener('click', async () => {
     const u = document.getElementById('loginUsername').value.trim();
     const p = document.getElementById('loginPassword').value;
-    if (!u || !p) return;
-    const res = loginUser(u, p);
-    if (res.ok) { enterGame(); } else { loginError.textContent = res.error; }
-});
-
-btnRegister.addEventListener('click', () => {
-    const u = document.getElementById('loginUsername').value.trim();
-    const p = document.getElementById('loginPassword').value;
+    loginError.textContent = '';
     if (!u || u.length < 3) { loginError.textContent = 'Username must be at least 3 characters.'; return; }
     if (!p || p.length < 4) { loginError.textContent = 'Password must be at least 4 characters.'; return; }
-    const res = registerUser(u, p);
+    const res = await loginUser(u, p);
     if (res.ok) { enterGame(); } else { loginError.textContent = res.error; }
 });
 
-formGuest.addEventListener('submit', (e) => {
-    e.preventDefault();
+// Register button
+document.getElementById('btnRegister').addEventListener('click', async () => {
+    const u = document.getElementById('loginUsername').value.trim();
+    const p = document.getElementById('loginPassword').value;
+    loginError.textContent = '';
+    if (!u || u.length < 3) { loginError.textContent = 'Username must be at least 3 characters.'; return; }
+    if (!p || p.length < 4) { loginError.textContent = 'Password must be at least 4 characters.'; return; }
+    const res = await registerUser(u, p);
+    if (res.ok) { enterGame(); } else { loginError.textContent = res.error; }
+});
+
+// Enter key on login password field
+document.getElementById('loginPassword').addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') { e.preventDefault(); document.getElementById('btnLogin').click(); }
+});
+
+// Guest play button
+document.getElementById('btnGuestPlay').addEventListener('click', async () => {
     const u = document.getElementById('guestUsername').value.trim();
+    guestError.textContent = '';
     if (!u || u.length < 3) { guestError.textContent = 'Username must be at least 3 characters.'; return; }
-    const res = guestLogin(u);
+    const res = await guestLogin(u);
     if (res.ok) { enterGame(); } else { guestError.textContent = res.error; }
+});
+
+// Enter key on guest username field
+document.getElementById('guestUsername').addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') { e.preventDefault(); document.getElementById('btnGuestPlay').click(); }
 });
 
 btnLogout.addEventListener('click', () => {

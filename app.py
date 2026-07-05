@@ -7,10 +7,14 @@ import os
 import json
 import chess
 import chess.engine
-from flask import Flask, render_template, request, jsonify, session
+from flask import Flask, render_template, request, jsonify, session, send_from_directory
+
+import auth
 
 app = Flask(__name__)
 app.secret_key = "chess-engine-secret-key-2026"
+
+DOCS_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "docs")
 
 # Stockfish path
 STOCKFISH_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "stockfish")
@@ -129,6 +133,78 @@ def board_to_dict(board):
         "move_number": board.fullmove_number,
         "history": game_state["history"],
     }
+
+
+# ──────────────────────────────────────────
+# CORS for auth API (docs client may run on another origin locally)
+# ──────────────────────────────────────────
+
+@app.after_request
+def add_cors_headers(response):
+    if request.path.startswith("/api/auth"):
+        response.headers["Access-Control-Allow-Origin"] = "*"
+        response.headers["Access-Control-Allow-Methods"] = "GET, POST, OPTIONS"
+        response.headers["Access-Control-Allow-Headers"] = "Content-Type"
+    return response
+
+
+@app.route("/api/auth/<path:subpath>", methods=["OPTIONS"])
+def auth_options(subpath):
+    return "", 204
+
+
+# ──────────────────────────────────────────
+# Auth API (global username registry)
+# ──────────────────────────────────────────
+
+@app.route("/api/auth/register", methods=["POST"])
+def auth_register():
+    data = request.get_json(silent=True) or {}
+    ok, error = auth.register(data.get("username", ""), data.get("password", ""))
+    if not ok:
+        return jsonify({"ok": False, "error": error}), 409
+    return jsonify({"ok": True})
+
+
+@app.route("/api/auth/login", methods=["POST"])
+def auth_login():
+    data = request.get_json(silent=True) or {}
+    ok, result = auth.login(data.get("username", ""), data.get("password", ""))
+    if not ok:
+        return jsonify({"ok": False, "error": result}), 401
+    return jsonify({"ok": True, "username": result})
+
+
+@app.route("/api/auth/guest", methods=["POST"])
+def auth_guest():
+    data = request.get_json(silent=True) or {}
+    ok, result = auth.guest_login(data.get("username", ""))
+    if not ok:
+        return jsonify({"ok": False, "error": result}), 409
+    return jsonify({"ok": True, "username": result})
+
+
+@app.route("/api/auth/check", methods=["GET"])
+def auth_check():
+    ok, error = auth.check_username(request.args.get("username", ""))
+    if not ok:
+        return jsonify({"ok": False, "available": False, "error": error}), 200
+    return jsonify({"ok": True, "available": True})
+
+
+# ──────────────────────────────────────────
+# Docs client (browser chess + auth UI)
+# ──────────────────────────────────────────
+
+@app.route("/play")
+@app.route("/play/")
+def play():
+    return send_from_directory(DOCS_DIR, "index.html")
+
+
+@app.route("/play/<path:filename>")
+def play_static(filename):
+    return send_from_directory(DOCS_DIR, filename)
 
 
 # ──────────────────────────────────────────
@@ -351,5 +427,6 @@ if __name__ == "__main__":
         print(f"[OK] Stockfish found at: {STOCKFISH_EXE}")
 
     print("\n[*] Starting Chess Engine Server...")
-    print("[*] Open http://localhost:5000 in your browser\n")
+    print("[*] Flask chess UI:  http://localhost:5000")
+    print("[*] Browser client:  http://localhost:5000/play/\n")
     app.run(debug=True, host="0.0.0.0", port=5000)
