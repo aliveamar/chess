@@ -409,9 +409,27 @@ body {
     z-index: 3;
     cursor: grab;
     transition: transform 0.1s ease;
-    filter: drop-shadow(1px 2px 2px rgba(0, 0, 0, 0.35));
     user-select: none;
     -webkit-user-select: none;
+}
+
+.piece[data-color="w"] {
+    color: #ffffff;
+    text-shadow:
+        -1px -1px 0 #333,
+         1px -1px 0 #333,
+        -1px  1px 0 #333,
+         1px  1px 0 #333,
+         0    0   4px rgba(0, 0, 0, 0.4);
+}
+
+.piece[data-color="b"] {
+    color: #1a1a2e;
+    text-shadow:
+        -1px -1px 0 rgba(255, 255, 255, 0.4),
+         1px -1px 0 rgba(255, 255, 255, 0.4),
+        -1px  1px 0 rgba(255, 255, 255, 0.4),
+         1px  1px 0 rgba(255, 255, 255, 0.4);
 }
 
 .piece:active {
