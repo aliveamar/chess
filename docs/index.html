@@ -11,13 +11,79 @@
     <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
-    <div class="app-container">
-        <!-- Header -->
+
+    <!-- ════════════════════════════════ -->
+    <!-- AUTH SCREEN                      -->
+    <!-- ════════════════════════════════ -->
+    <div class="auth-screen" id="authScreen">
+        <div class="auth-bg-glow"></div>
+        <div class="auth-container">
+            <div class="auth-header">
+                <div class="auth-logo">&#9823;</div>
+                <h1>Chess Engine</h1>
+                <p>Powered by Stockfish</p>
+            </div>
+
+            <!-- Tab Selector -->
+            <div class="auth-tabs">
+                <button class="auth-tab active" data-tab="login" id="tabLogin">Login / Register</button>
+                <button class="auth-tab" data-tab="guest" id="tabGuest">Play as Guest</button>
+            </div>
+
+            <!-- Login / Register Form -->
+            <form class="auth-form" id="formLogin" autocomplete="off">
+                <div class="auth-field">
+                    <label for="loginUsername">Username</label>
+                    <input type="text" id="loginUsername" placeholder="Enter your username" required minlength="3" maxlength="20" autocomplete="off">
+                </div>
+                <div class="auth-field">
+                    <label for="loginPassword">Password</label>
+                    <input type="password" id="loginPassword" placeholder="Enter your password" required minlength="4" maxlength="30" autocomplete="off">
+                </div>
+                <div class="auth-error" id="loginError"></div>
+                <div class="auth-buttons">
+                    <button type="submit" class="btn btn-primary auth-btn" id="btnLogin">Login</button>
+                    <button type="button" class="btn btn-secondary auth-btn" id="btnRegister">Register</button>
+                </div>
+                <p class="auth-hint">Login with existing account or Register a new one.</p>
+            </form>
+
+            <!-- Guest Form -->
+            <form class="auth-form hidden" id="formGuest" autocomplete="off">
+                <div class="auth-field">
+                    <label for="guestUsername">Username</label>
+                    <input type="text" id="guestUsername" placeholder="Choose a display name" required minlength="3" maxlength="20" autocomplete="off">
+                </div>
+                <div class="auth-error" id="guestError"></div>
+                <button type="submit" class="btn btn-primary auth-btn" style="width:100%">Play as Guest</button>
+                <p class="auth-hint">Guest stats are saved in this browser only. No password needed.</p>
+            </form>
+        </div>
+    </div>
+
+    <!-- ════════════════════════════════ -->
+    <!-- GAME SCREEN                      -->
+    <!-- ════════════════════════════════ -->
+    <div class="app-container hidden" id="appContainer">
+        <!-- Header with user info -->
         <header class="app-header">
             <div class="logo">
                 <span class="logo-icon">&#9823;</span>
                 <h1>Chess Engine</h1>
                 <span class="logo-badge">Stockfish</span>
+            </div>
+            <div class="user-bar">
+                <div class="user-info">
+                    <span class="user-name" id="displayUsername"></span>
+                    <span class="user-type-badge" id="displayUserType"></span>
+                </div>
+                <div class="user-quick-stats">
+                    <span class="stat-chip" id="statGames" title="Games played">0 games</span>
+                    <span class="stat-chip win" id="statWins" title="Wins">0W</span>
+                    <span class="stat-chip loss" id="statLosses" title="Losses">0L</span>
+                    <span class="stat-chip draw" id="statDraws" title="Draws">0D</span>
+                </div>
+                <button class="btn btn-outline btn-sm" id="btnLogout">Logout</button>
             </div>
         </header>
 
@@ -45,15 +111,40 @@
                         <div class="captured-pieces" id="capturedByBlack"></div>
                     </div>
                 </div>
+
+                <!-- Player Stats Panel -->
+                <div class="stats-container glass-panel">
+                    <h3>Your Stats</h3>
+                    <div class="stats-grid">
+                        <div class="stat-item">
+                            <span class="stat-value" id="statTotalGames">0</span>
+                            <span class="stat-label">Games</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-value" id="statWinRate">0%</span>
+                            <span class="stat-label">Win Rate</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-value" id="statTimePlayed">0m</span>
+                            <span class="stat-label">Time Played</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-value" id="statBestElo">--</span>
+                            <span class="stat-label">Best Win ELO</span>
+                        </div>
+                    </div>
+                </div>
             </aside>
 
             <!-- Center — Chess Board -->
             <section class="board-section">
+                <!-- Game Timer -->
                 <div class="board-status-bar">
                     <span class="turn-indicator" id="turnIndicator">
                         <span class="turn-dot"></span>
                         White to move
                     </span>
+                    <span class="game-timer" id="gameTimer">0:00</span>
                     <span class="game-status" id="gameStatus"></span>
                 </div>
                 <div class="board-wrapper">
@@ -93,17 +184,11 @@
                         </select>
                     </div>
                     <div class="button-row">
-                        <button class="btn btn-primary" id="btnNewGame" title="Start a new game">
-                            New Game
-                        </button>
-                        <button class="btn btn-secondary" id="btnUndo" title="Undo last move">
-                            Undo
-                        </button>
+                        <button class="btn btn-primary" id="btnNewGame" title="Start a new game">New Game</button>
+                        <button class="btn btn-secondary" id="btnUndo" title="Undo last move">Undo</button>
                     </div>
                     <div class="button-row">
-                        <button class="btn btn-outline" id="btnFlip" title="Flip the board">
-                            Flip
-                        </button>
+                        <button class="btn btn-outline" id="btnFlip" title="Flip the board">Flip</button>
                     </div>
                 </div>
                 <div class="history-container glass-panel">
@@ -122,7 +207,6 @@
         </div>
     </div>
 
-    <!-- chess.js from CDN for move validation -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/chess.js/0.10.3/chess.min.js"></script>
     <script src="js/game.js"></script>
 </body>
