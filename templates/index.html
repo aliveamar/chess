@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Play chess against Stockfish — the world's strongest chess engine. Beautiful web interface with adjustable difficulty.">
+    <title>♟ Chess Engine — Powered by Stockfish</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    <div class="app-container">
+        <!-- Header -->
+        <header class="app-header">
+            <div class="logo">
+                <span class="logo-icon">♟</span>
+                <h1>Chess Engine</h1>
+                <span class="logo-badge">Stockfish</span>
+            </div>
+        </header>
+
+        <!-- Main Content -->
+        <main class="game-layout">
+            <!-- Left Panel — Captured Pieces & Eval -->
+            <aside class="side-panel left-panel">
+                <!-- Evaluation Bar -->
+                <div class="eval-container glass-panel">
+                    <h3>Evaluation</h3>
+                    <div class="eval-bar-wrapper">
+                        <div class="eval-bar">
+                            <div class="eval-fill" id="evalFill"></div>
+                        </div>
+                        <span class="eval-score" id="evalScore">0.0</span>
+                    </div>
+                </div>
+
+                <!-- Captured Pieces -->
+                <div class="captured-container glass-panel">
+                    <h3>Captured</h3>
+                    <div class="captured-group">
+                        <label>By White</label>
+                        <div class="captured-pieces" id="capturedByWhite"></div>
+                    </div>
+                    <div class="captured-group">
+                        <label>By Black</label>
+                        <div class="captured-pieces" id="capturedByBlack"></div>
+                    </div>
+                </div>
+            </aside>
+
+            <!-- Center — Chess Board -->
+            <section class="board-section">
+                <div class="board-status-bar">
+                    <span class="turn-indicator" id="turnIndicator">
+                        <span class="turn-dot"></span>
+                        White to move
+                    </span>
+                    <span class="game-status" id="gameStatus"></span>
+                </div>
+
+                <div class="board-wrapper">
+                    <!-- Rank labels (left) -->
+                    <div class="rank-labels" id="rankLabels"></div>
+
+                    <!-- The Chess Board -->
+                    <div class="chess-board" id="chessBoard"></div>
+
+                    <!-- Rank labels (right) — hidden on small screens -->
+                    <div class="rank-labels right-labels" id="rankLabelsRight"></div>
+                </div>
+
+                <!-- File labels (bottom) -->
+                <div class="file-labels" id="fileLabels"></div>
+
+                <!-- Promotion Modal -->
+                <div class="promotion-modal" id="promotionModal">
+                    <div class="promotion-content glass-panel">
+                        <h3>Promote pawn to:</h3>
+                        <div class="promotion-choices" id="promotionChoices"></div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Right Panel — Controls & History -->
+            <aside class="side-panel right-panel">
+                <!-- Controls -->
+                <div class="controls-container glass-panel">
+                    <h3>Controls</h3>
+
+                    <div class="control-group">
+                        <label for="difficultySelect">Difficulty</label>
+                        <select id="difficultySelect" class="control-select">
+                            <option value="1">☆ Beginner (~800)</option>
+                            <option value="2">★ Easy (~1200)</option>
+                            <option value="3" selected>★★ Medium (~1800)</option>
+                            <option value="4">★★★ Hard (~2500)</option>
+                            <option value="5">👑 Grandmaster (~3500)</option>
+                        </select>
+                    </div>
+
+                    <div class="control-group">
+                        <label for="colorSelect">Play as</label>
+                        <select id="colorSelect" class="control-select">
+                            <option value="white" selected>⬜ White</option>
+                            <option value="black">⬛ Black</option>
+                        </select>
+                    </div>
+
+                    <div class="button-row">
+                        <button class="btn btn-primary" id="btnNewGame" title="Start a new game">
+                            <span>⟳</span> New Game
+                        </button>
+                        <button class="btn btn-secondary" id="btnUndo" title="Undo last move">
+                            <span>↩</span> Undo
+                        </button>
+                    </div>
+
+                    <div class="button-row">
+                        <button class="btn btn-outline" id="btnFlip" title="Flip the board">
+                            <span>⇅</span> Flip
+                        </button>
+                        <button class="btn btn-outline" id="btnAnalyze" title="Analyze position">
+                            <span>🔍</span> Analyze
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Move History -->
+                <div class="history-container glass-panel">
+                    <h3>Moves</h3>
+                    <div class="move-list" id="moveList">
+                        <div class="move-placeholder">Play a move to begin...</div>
+                    </div>
+                </div>
+            </aside>
+        </main>
+
+        <!-- Loading Overlay -->
+        <div class="loading-overlay" id="loadingOverlay">
+            <div class="loading-spinner"></div>
+            <p>Stockfish is thinking...</p>
+        </div>
+    </div>
+
+    <script src="{{ url_for('static', filename='js/game.js') }}"></script>
+</body>
+</html>
